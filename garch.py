@@ -16,7 +16,14 @@ am = arch_model(brent_returns, mean = 'ARX', lags = 2, vol = 'EGARCH', p = 1, o 
 split_date = dt.datetime(2014,1,1)
 res = am.fit(last_obs = split_date)
 print(res.summary())
-forecasts = res.forecast(horizon = 1, start = split_date)
-forecasts.variance[split_date:].plot()
-forecasts.mean[split_date:].plot()
+forecasts = res.forecast(horizon = 4, start = split_date, method='bootstrap')
+sims = forecasts.simulations
+lines = plt.plot(sims.residual_variances[-1].T, color='#9cb2d6')
+lines[0].set_label('Simulated path')
+line = plt.plot(forecasts.variance.iloc[-1].values, color='#002868')
+line[0].set_label('Expected variance')
+legend = plt.legend()
+plt.show()
+
+lines = plt.plot(forecasts.mean)
 plt.show()
