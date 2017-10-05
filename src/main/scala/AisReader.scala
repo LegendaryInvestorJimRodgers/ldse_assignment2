@@ -3,6 +3,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 object AisReader {
+
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("AisReader")
     val sc = new SparkContext(conf)
@@ -52,5 +53,6 @@ object AisReader {
     }
 
   }
+
 
 }
