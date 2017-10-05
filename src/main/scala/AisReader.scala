@@ -1,39 +1,24 @@
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
 object AisReader {
 
   def main(args: Array[String]) {
-    val conf = new SparkConf().setAppName("AisReader")
-    val sc = new SparkContext(conf)
+    val spark = SparkSession
+      .builder()
+      .appName("VariableExtraction")
+      .getOrCreate()
+    import spark.implicits._
 
-    val aisfile = sc.textFile("/user/hannesm/lsde/ais2/*/*/*")
-    val aivdm_messages = aisfile.filter(line => line(0) == '!')
-    val voyage_reports = aivdm_messages.map(line => convert5(line))
-    //println(voyage_reports.count())
-    //val position_reports = aivdm_messages.map(line => convert1(line))
-//    val position_header: RDD[String] = sc.parallelize(Array("message_id,repeat,mmsi,nav_status,rot,sog,pos_acc,lat,lng,cog,true_heading," +
-//      "utc_sec,regional,spare,raim,sync_state,slot_time_out,sub_message"))
-    //position_header.union(position_reports.filter(line => line != " ")).repartition(1).saveAsTextFile("positions.txt")
-    val ship_types = voyage_reports.filter(line => line != " ")
-    val ship_types1 = ship_types.map(l => mmsi_type_pair(l)).distinct()
-    val ship_types2 = ship_types1.filter(t => tanker(t._2))
-    ship_types2.map(l=> l._1).saveAsTextFile("/user/lsde08/tankers.txt")
-    //scala.io.StdIn.readLine()
+    val messages = spark.read.text("/user/hannesm/lsde/ais2/*/*/*")
+    var voyage_reports = messages.map(row => toMmsiType(row.toString()))
+    voyage_reports = voyage_reports.filter(v => v.mmsi != "-1" && (v.ship_type >= 80 && v.ship_type < 90))
+    val tankers = voyage_reports.select(voyage_reports("mmsi")).distinct()
+    tankers.coalesce(1).write.text("/user/lsde08/tankers.txt")
   }
 
-  def tanker(t: Int): Boolean = {
-    t >= 80 && t < 90
-  }
-
-  def mmsi_type_pair(line: String): (String, Int) = {
-    val values = line.split(",")
-    try {
-      (values(2), values(7).toInt)
-    } catch {
-      case e : Exception => (values(2), 0)
-    }
+  def toMmsiType(message: String): MmsiType = {
+    val fields = convert5(message).split(",")
+    MmsiType(fields(0), fields(1).toInt)
   }
 
 
@@ -42,17 +27,19 @@ object AisReader {
     val vdmmes: Vdm = new Vdm()
     //println(message)
     try {
-      if (vdmmes.add(message) == 0 && vdmmes.msgid() == 5) {
+      if (vdmmes.add(message) == 0) {
         mes.parse(vdmmes.sixbit())
         mes.toCsv
       } else {
-        " "
+        "-1,0"
       }
     } catch {
-      case e: Exception => " "
+      case e: Exception => "-1,0"
     }
 
   }
 
 
 }
+
+case class MmsiType(mmsi: String, ship_type: Int)
