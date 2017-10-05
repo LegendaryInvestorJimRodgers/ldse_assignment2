@@ -14,7 +14,7 @@ object VariableExtraction {
     tankers.cache()
     var year = 2014
     var month, day = 1
-    var dataset = spark.createDataset(Seq(AggregatedSOG))
+    var dataset = spark.createDataset(Seq(AggregatedSOG("-1",0,0,0)))
 
     while (year <= 2016) {
       while (month <= 12) {
@@ -32,7 +32,7 @@ object VariableExtraction {
               val slow = sog_aggregated.filter($"sog" < 1).count()
               val med = sog_aggregated.filter( $"sog" < 5 && $"sog" >= 1).count()
               val fast = sog_aggregated.filter($"sog" >= 5).count()
-              dataset = dataset.union(spark.createDataset(AggregatedSOG(year + "/" + month + "/" + day, slow.toInt, med.toInt, fast.toInt)))
+              dataset = dataset.union(Seq(AggregatedSOG(year + "/" + month + "/" + day, slow.toInt, med.toInt, fast.toInt)).toDS())
               day += 1
             } catch {
               case e: Exception => day += 1

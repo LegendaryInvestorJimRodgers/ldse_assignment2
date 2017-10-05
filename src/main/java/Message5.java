@@ -78,9 +78,6 @@ public class Message5 extends Messages {
     }
 
     public String toCsv(){
-        return this.msgid() + "," + this.repeat() + "," + this.userid() + "," + this.version() + "," + this.imo() + ","
-                + this.callsign() + "," + this.name() + "," + this.ship_type() + "," + this.dim_bow() + "," + this.dim_bow()
-                + "," + this.dim_stern() + "," + this.dim_port() + "," + this.dim_starboard() + "," + this.pos_type() +
-                "," + this.eta() + "," + this.draught() + "," + this.dest();
+        return this.userid() +  "," + this.ship_type();
     }
 }
