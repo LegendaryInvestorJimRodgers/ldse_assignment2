@@ -10,15 +10,13 @@ object VariableExtraction {
       .appName("VariableExtraction")
       .getOrCreate()
     import spark.implicits._
-    val tankers = spark.read.text("2014_tankers.txt")
+    val tankers = spark.read.text("/user/lsde08/tankers.txt")
+//    val tankers = spark.read.text("2014_tankers.txt")
     tankers.cache()
-    var year = 2014
-    var month, day = 1
-    var dataset = spark.createDataset(Seq(AggregatedSOG("-1", 0, 0, 0)))
-  // "../ais2/*/*/*"
-    val messages = spark.read.text("../ais2/*/*/*").withColumn("date", input_file_name)
-    val messages2 = messages.select(substring(col("date"), 68, 10).as("date"), col("value"))
-//    println(messages2.show())
+    val messages = spark.read.text("/user/hannesm/lsde/ais2/*/*/*").withColumn("date", input_file_name)
+//    val messages = spark.read.text("../ais2/*/*/*").withColumn("date", input_file_name)
+    val messages2 = messages.select(substring(col("date"), 46, 10).as("date"), col("value"))
+//    val messages2 = messages.select(substring(col("date"), 68, 10).as("date"), col("value"))
 
     var position_reports = messages2.map(row => toPositionReport(row.getAs[String]("value"), row.getAs[String]("date")))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
@@ -29,21 +27,11 @@ object VariableExtraction {
     //println(sog_aggregated.show())
 
     val speed_avg = sog_aggregated.groupBy($"date").avg("avg(sog)")
-    val speed_counts = sog_aggregated.filter($"avg(sog)" <= 1).groupBy("date").agg(count("avg(sog)"))
-    val speed_counts2 = sog_aggregated.filter($"avg(sog)" > 1).groupBy("date").agg(count("avg(sog)"))
+    val speed_counts = sog_aggregated.filter($"avg(sog)" <= 1).groupBy("date").agg(count("avg(sog)") as "slow_count")
+    val speed_counts2 = sog_aggregated.filter($"avg(sog)" > 1).groupBy("date").agg(count("avg(sog)") as "fast_count")
     val result = speed_avg.join(speed_counts, "date").join(speed_counts2, "date")
-    println(result.show())
-
-
-    //position_reports2.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("ships.csv")
-//    val slow = sog_aggregated.filter($"sog" < 1).count()
-//    val med = sog_aggregated.filter($"sog" < 5 && $"sog" >= 1).count()
-//    val fast = sog_aggregated.filter($"sog" >= 5).count()
-
-    dataset = dataset.union(Seq(AggregatedSOG("test", 0, 0, 0)).toDS())
-
-
-
+//    println(result.show())
+    result.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("data_agg.csv")
   }
 
   def toPositionReport(message: String, date: String): PositionReport = {
@@ -73,5 +61,4 @@ object VariableExtraction {
   }
 }
 
-case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)//
-case class AggregatedSOG(date: String, slow: Int, med: Int, fast: Int)
+case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)
