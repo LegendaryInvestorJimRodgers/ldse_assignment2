@@ -30,7 +30,8 @@ object VariableExtraction {
     val result = speed_avg.join(speed_counts, "date").join(speed_counts2, "date")
 //    println(result.show())
 
-    result.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("data_agg.csv")
+//    result.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("data_agg.csv")
+    result.write.format("com.databricks.spark.csv").option("header", "true").save("data_agg2.csv")
   }
 
   def toPositionReport(message: String, date: String): PositionReport = {
