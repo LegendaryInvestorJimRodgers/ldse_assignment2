@@ -26,9 +26,10 @@ object VariableExtraction {
     val position_reports2 = position_reports.join(tankers, position_reports("mmsi") === tankers("value"))
 
     val sog_aggregated = position_reports2.groupBy($"date", $"mmsi").avg("sog")
-    println(sog_aggregated.show())
+    //println(sog_aggregated.show())
 
-    val speed_counts = sog_aggregated.select()
+    val speed_counts = sog_aggregated.groupBy($"date").avg("avg(sog)")
+    println(speed_counts.show())
     //position_reports2.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("ships.csv")
 //    val slow = sog_aggregated.filter($"sog" < 1).count()
 //    val med = sog_aggregated.filter($"sog" < 5 && $"sog" >= 1).count()
