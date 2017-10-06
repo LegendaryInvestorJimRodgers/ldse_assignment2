@@ -29,8 +29,8 @@ object VariableExtraction {
     //println(sog_aggregated.show())
 
     val speed_avg = sog_aggregated.groupBy($"date").avg("avg(sog)")
-    val speed_counts = sog_aggregated.filter($"avg(sog)" <= 1).groupBy("date").agg($"date", count("avg(sog)"))
-    val speed_counts2 = sog_aggregated.filter($"avg(sog)" > 1).groupBy("date").agg($"date", count("avg(sog)"))
+    val speed_counts = sog_aggregated.filter($"avg(sog)" <= 1).groupBy("date").agg(count("avg(sog)"))
+    val speed_counts2 = sog_aggregated.filter($"avg(sog)" > 1).groupBy("date").agg(count("avg(sog)"))
     println(speed_counts.show())
 
 
