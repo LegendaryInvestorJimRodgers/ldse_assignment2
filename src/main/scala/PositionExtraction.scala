@@ -12,18 +12,18 @@ object PositionExtraction {
       .appName("VariableExtraction")
       .getOrCreate()
     import spark.implicits._
-    val tankers = spark.read.text("2014_tankers.txt")
+    val tankers = spark.read.text("/user/lsde08/tankers.txt")
     tankers.cache()
 
-    val messages = spark.read.text("../ais2/*/*/*").withColumn("date", input_file_name)
-    val messages2 = messages.select(substring(col("date"), 68, 10).as("date"), col("value"))
+    val messages = spark.read.text("/user/hannesm/lsde/ais2/*/*/*").withColumn("date", input_file_name)
+    val messages2 = messages.select(substring(col("date"), 46, 10).as("date"), col("value"))
     var position_reports = messages2.map(row => toPositionReport(row.getAs[String]("value"), row.getAs[String]("date")))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
     val position_reports2 = position_reports.join(tankers, position_reports("mmsi") === tankers("value"))
-    val position_aggregated = position_reports2.groupBy($"date", $"mmsi").agg(avg("lat"), avg("long"))
-    println(position_aggregated.show())
-
-
+    val position_aggregated = position_reports2.groupBy($"date", $"mmsi").agg(avg("lat"), avg("lng"))
+//    println(position_aggregated.show())
+//    position_aggregated.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("pos_agg.csv")
+    position_aggregated.write.format("com.databricks.spark.csv").option("header", "true").save("pos_agg2.csv")
   }
   def toPositionReport(message: String, date: String): PositionReport = {
     //println(message)
@@ -52,5 +52,5 @@ object PositionExtraction {
   }
 }
 
-case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)//
+//case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)//
 
