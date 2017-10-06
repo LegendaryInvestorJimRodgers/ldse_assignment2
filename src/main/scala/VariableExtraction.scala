@@ -1,5 +1,5 @@
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.input_file_name
+import org.apache.spark.sql.functions._
 
 //import org.apache.spark.{SparkContext, SparkConf}
 
@@ -16,15 +16,16 @@ object VariableExtraction {
     var month, day = 1
     var dataset = spark.createDataset(Seq(AggregatedSOG("-1", 0, 0, 0)))
 
-    val messages = spark.read.text("12-15.txt").withColumn("filename", input_file_name)
-    println(messages.show())
+    val messages = spark.read.text("../ais2/*/*/*").withColumn("Date", input_file_name)
+    val messages2 = messages.select(substring(col("Date"), 68, 10).as("Date"), col("value"))
+//    println(messages2.show())
 
     var position_reports = messages.map(row => toPositionReport(row.toString()))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
     val position_reports2 = position_reports.join(tankers, position_reports("mmsi") === tankers("value"))
-    //println(position_reports2.show())
-    val sog_aggregated = position_reports2.groupBy($"mmsi").avg("sog")
-    //println(sog_aggregated.show())
+
+    val sog_aggregated = position_reports2.groupBy($"Date", $"mmsi").avg("sog")
+    println(sog_aggregated.show())
     //position_reports2.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("ships.csv")
 //    val slow = sog_aggregated.filter($"sog" < 1).count()
 //    val med = sog_aggregated.filter($"sog" < 5 && $"sog" >= 1).count()
@@ -43,7 +44,7 @@ object VariableExtraction {
       PositionReport(fields(0), fields(1).toInt, fields(2).toFloat, fields(3).toFloat, fields(4).toFloat,
         fields(5).toFloat, fields(6).toFloat, fields(7).toInt)
     } else {
-      PositionReport("-1", 0, 0, 0, 0, 0, 0, 0)
+      PositionReport("-1", 0, 0, 0, 0, 0, 0, 0, "-1")
     }
   }
 
@@ -63,6 +64,5 @@ object VariableExtraction {
   }
 }
 
-case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int)
-
+case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)
 case class AggregatedSOG(date: String, slow: Int, med: Int, fast: Int)
