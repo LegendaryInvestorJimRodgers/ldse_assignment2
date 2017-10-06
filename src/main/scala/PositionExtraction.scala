@@ -1,7 +1,11 @@
+/**
+ * Created by wesselklijnsma on 06-10-17.
+ */
+
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
-object VariableExtraction {
+object PositionExtraction {
   def main(args: Array[String]) {
     val spark = SparkSession
       .builder()
@@ -10,30 +14,17 @@ object VariableExtraction {
     import spark.implicits._
     val tankers = spark.read.text("2014_tankers.txt")
     tankers.cache()
-    var year = 2014
-    var month, day = 1
-    var dataset = spark.createDataset(Seq(AggregatedSOG("-1", 0, 0, 0)))
-  // "../ais2/*/*/*"
+
     val messages = spark.read.text("../ais2/*/*/*").withColumn("date", input_file_name)
     val messages2 = messages.select(substring(col("date"), 68, 10).as("date"), col("value"))
-//    println(messages2.show())
-
     var position_reports = messages2.map(row => toPositionReport(row.getAs[String]("value"), row.getAs[String]("date")))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
-    //println(position_reports.show())
     val position_reports2 = position_reports.join(tankers, position_reports("mmsi") === tankers("value"))
+    val position_aggregated = position_reports2.groupBy($"date", $"mmsi").agg(avg("lat"), avg("long"))
+    println(position_aggregated.show())
 
-    val sog_aggregated = position_reports2.groupBy($"date", $"mmsi").avg("sog")
-    //println(sog_aggregated.show())
 
-    val speed_avg = sog_aggregated.groupBy($"date").avg("avg(sog)")
-    val speed_counts = sog_aggregated.filter($"avg(sog)" <= 1).groupBy("date").agg(count("avg(sog)"))
-    val speed_counts2 = sog_aggregated.filter($"avg(sog)" > 1).groupBy("date").agg(count("avg(sog)"))
-    val result = speed_avg.join(speed_counts, "date").join(speed_counts2, "date")
-    println(result.show())
-    result.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("data_agg.csv")
   }
-
   def toPositionReport(message: String, date: String): PositionReport = {
     //println(message)
     val fields = convert1(message).split(",")
@@ -62,4 +53,4 @@ object VariableExtraction {
 }
 
 case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)//
-case class AggregatedSOG(date: String, slow: Int, med: Int, fast: Int)
+
