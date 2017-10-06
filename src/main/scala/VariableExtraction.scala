@@ -15,16 +15,17 @@ object VariableExtraction {
     var year = 2014
     var month, day = 1
     var dataset = spark.createDataset(Seq(AggregatedSOG("-1", 0, 0, 0)))
-
-    val messages = spark.read.text("../ais2/*/*/*").withColumn("Date", input_file_name)
-    val messages2 = messages.select(substring(col("Date"), 68, 10).as("Date"), col("value"))
+  // "../ais2/*/*/*"
+    val messages = spark.read.text("../ais2/*/*/*").withColumn("date", input_file_name)
+    val messages2 = messages.select(substring(col("date"), 68, 10).as("date"), col("value"))
 //    println(messages2.show())
 
-    var position_reports = messages.map(row => toPositionReport(row.toString()))
+    var position_reports = messages.map(row => toPositionReport(row.getAs[String]("value"), row.getAs[String]("date")))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
+    //println(position_reports.show())
     val position_reports2 = position_reports.join(tankers, position_reports("mmsi") === tankers("value"))
 
-    val sog_aggregated = position_reports2.groupBy($"Date", $"mmsi").avg("sog")
+    val sog_aggregated = position_reports2.groupBy($"date", $"mmsi").avg("sog")
     println(sog_aggregated.show())
     //position_reports2.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("ships.csv")
 //    val slow = sog_aggregated.filter($"sog" < 1).count()
@@ -37,12 +38,12 @@ object VariableExtraction {
 
   }
 
-  def toPositionReport(message: String): PositionReport = {
+  def toPositionReport(message: String, date: String): PositionReport = {
     //println(message)
     val fields = convert1(message).split(",")
     if (fields.length == 8) {
       PositionReport(fields(0), fields(1).toInt, fields(2).toFloat, fields(3).toFloat, fields(4).toFloat,
-        fields(5).toFloat, fields(6).toFloat, fields(7).toInt)
+        fields(5).toFloat, fields(6).toFloat, fields(7).toInt, date)
     } else {
       PositionReport("-1", 0, 0, 0, 0, 0, 0, 0, "-1")
     }
@@ -64,5 +65,5 @@ object VariableExtraction {
   }
 }
 
-case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)
+case class PositionReport(mmsi: String, nav_status: Int, rot: Float, sog: Float, lat: Float, lng: Float, cog: Float, utc_sec: Int, date: String)//
 case class AggregatedSOG(date: String, slow: Int, med: Int, fast: Int)
