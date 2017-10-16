@@ -26,3 +26,7 @@ for index in range(0, 30):
     correlogram_speed.append(correlation_matrices[index][0, 1])
     correlogram_slow.append(correlation_matrices[index][0, 2])
     correlogram_fast.append(correlation_matrices[index][0, 3])
+
+correlogram_fast = correlogram_fast[::-1]
+correlogram_slow = correlogram_slow[::-1]
+correlogram_speed = correlogram_speed[::-1]
