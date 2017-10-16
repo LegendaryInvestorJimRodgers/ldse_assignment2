@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        #map {
+            height: 100%;
+            width: 50%;
+            float: left;
+        }
+
+        #graphs {
+            width: 50%;
+            height: 100%;
+            float: left;
+        }
+
+        #wind-speed {
+            height: 50%;
+        }
+
+        #oil-price {
+            height: 50%;
+        }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+<div id="map"></div>
+<div id="graphs">
+    <div id="wind-speed">
+        <script>
+            Plotly.d3.csv('http://127.0.0.1:8080/data_agg_full.csv', function (rows) {
+                var trace = {
+                    name: 'Average speed',
+                    type: 'scatter',                    // set the chart type
+                    mode: 'lines',                      // connect points with lines
+                    x: rows.map(function (row) {          // set the x-data
+                        return row['date'].replace(/\//g, "-") + " 00:00";
+                    }),
+                    y: rows.map(function (row) {          // set the x-data
+                        return row['avg(avg(sog))'];
+                    }),
+                    yaxis: 'y2',
+                    line: {                             // set the width of the line.
+                        width: 1
+                    }
+//            error_y: {
+//                array: rows.map(function (row) {    // set the height of the error bars
+//                    return row['10 Min Std Dev'];
+//                }),
+//                thickness: 0.5,                   // set the thickness of the error bars
+//                width: 0
+//            }
+                };
+
+                var trace2 = {
+                    name: 'Non moving boats',
+                    type: 'scatter',                    // set the chart type
+                    mode: 'lines',                      // connect points with lines
+                    x: rows.map(function (row) {          // set the x-data
+                        return row['date'].replace(/\//g, "-");
+                    }),
+                    y: rows.map(function (row) {          // set the x-data
+                        return row['slow_count'];
+                    }),
+                    line: {                             // set the width of the line.
+                        width: 1
+                    }
+//            error_y: {
+//                array: rows.map(function (row) {    // set the height of the error bars
+//                    return row['10 Min Std Dev'];
+//                }),
+//                thickness: 0.5,                   // set the thickness of the error bars
+//                width: 0
+//            }
+                };
+
+                var trace3 = {
+                    name: 'Moving boats',
+                    type: 'scatter',                    // set the chart type
+                    mode: 'lines',                      // connect points with lines
+                    x: rows.map(function (row) {          // set the x-data
+                        return row['date'].replace(/\//g, "-");
+                    }),
+                    y: rows.map(function (row) {          // set the x-data
+                        return row['fast_count'];
+                    }),
+                    line: {                             // set the width of the line.
+                        width: 1
+                    }
+//            error_y: {
+//                array: rows.map(function (row) {    // set the height of the error bars
+//                    return row['10 Min Std Dev'];
+//                }),
+//                thickness: 0.5,                   // set the thickness of the error bars
+//                width: 0
+//            }
+                };
+
+                var layout = {
+                    yaxis: {title: "Count"},
+                    yaxis2: {
+                        title: 'Nautical knots',
+//                titlefont: {color: 'rgb(148, 103, 189)'},
+//                tickfont: {color: 'rgb(148, 103, 189)'},
+                        overlaying: 'y',
+                        side: 'right'
+                    },// set the y axis title
+                    xaxis: {
+                        showgrid: false,                  // remove the x-axis grid lines
+                        tickformat: "%b, %y",              // customize the date format to "month, day"
+                        tickangle: 0
+                    },
+                    legend: {"orientation": "h"},
+                    margin: {                           // update the left, bottom, right, top margin
+                        l: 40, b: 0, r: 25, t: 0
+                    },
+                    shapes: [
+                        {
+                            type: 'rect',
+                            // x-reference is assigned to the x-values
+                            xref: 'x',
+                            // y-reference is assigned to the plot paper [0,1]
+                            yref: 'paper',
+                            x0: '2014-10-06',
+                            y0: 0,
+                            x1: '2014-10-09',
+                            y1: 1,
+                            fillcolor: '#FF5733',
+                            opacity: 0.6,
+                            line: {
+                                width: 0
+                            }
+                        }
+                    ]
+
+
+                };
+
+                Plotly.plot(document.getElementById('wind-speed'), [trace, trace2, trace3], layout, {showLink: false});
+            });
+
+        </script>
+    </div>
+
+
+    <div id="oil-price">
+        <script>
+            Plotly.d3.csv('http://127.0.0.1:8080/BrentData.csv', function (rows) {
+                var trace = {
+                    type: 'scatter',                    // set the chart type
+                    mode: 'lines',                      // connect points with lines
+                    x: rows.map(function (row) {          // set the x-data
+                        return row['Date'];
+                    }),
+                    y: rows.map(function (row) {          // set the x-data
+                        return row['Adjusted Price'];
+                    }),
+                    //yaxis: 'y2',
+                    line: {                             // set the width of the line.
+                        width: 1
+                    }
+//            error_y: {
+//                array: rows.map(function (row) {    // set the height of the error bars
+//                    return row['10 Min Std Dev'];
+//                }),
+//                thickness: 0.5,                   // set the thickness of the error bars
+//                width: 0
+//            }
+                };
+
+
+                var layout = {
+                    yaxis: {title: "USD/Bl"}, // set the y axis title
+                    xaxis: {
+                        showgrid: false,                  // remove the x-axis grid lines
+                        range: ['2014-10-06', '2016-08-18'],
+                        tickformat: "%b, %y", // customize the date format to "month, day"
+                        tickangle: 0
+                    },
+                    margin: {                           // update the left, bottom, right, top margin
+                        l: 40, b: 20, r: 25, t: 20
+                    },
+                    shapes: [
+                        {
+                            type: 'rect',
+                            // x-reference is assigned to the x-values
+                            xref: 'x',
+                            // y-reference is assigned to the plot paper [0,1]
+                            yref: 'paper',
+                            x0: '2014-10-06',
+                            y0: 0,
+                            x1: '2014-10-09',
+                            y1: 1,
+                            fillcolor: '#FF5733',
+                            opacity: 0.6,
+                            line: {
+                                width: 0
+                            }
+                        }
+                    ]
+//            ]
+
+
+                };
+
+                Plotly.plot(document.getElementById('oil-price'), [trace], layout, {showLink: false});
+            });
+
+        </script>
+    </div>
+</div>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<script src="https://npmcdn.com/jspath/lib/jspath.js"></script>
+<script src="https://npmcdn.com/json-transforms/build/json-transforms.js"></script>
+<script src="jquery-3.2.1.min.js"></script>
+<script src="visualization.js"></script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBf3Ja9re7KhxuOaglhAKoWb3RhUaQAjYk&callback=initMap">
+</script>
+
+
+</body>
+</html>
