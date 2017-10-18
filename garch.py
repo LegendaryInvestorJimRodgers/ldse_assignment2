@@ -34,13 +34,13 @@ forecast = res.params[0] * data['intercept'] + res.params[1] * data['slow_count_
 forecast = forecast.shift(periods = +1)
 
 #d. generate the forecasts for the volatility
-volatility = data[['Adjusted Price']].rolling(100).var()
+volatility = data[['Adjusted Price']].rolling(80).var()
 volatility_data = pd.concat([volatility, res.resid], axis=1, join_axes = [volatility.index])
 volatility_data = volatility_data.dropna(axis = 0)
 e = volatility_data['resid'] / volatility_data['Adjusted Price']
 forecast_vol = np.exp(res.params[5] + res.params[6] * (abs(e) - np.sqrt(2/np.pi)) + res.params[7] * abs(e) + res.params[8] * np.log(volatility['Adjusted Price']))
 forecast_vol = forecast_vol.shift(periods = +1)
 
-forecast_final = pd.concat([forecast, forecast_vol], axis = 1, join_axes = [forecast.index])
+forecast_final = pd.concat([forecast, np.sqrt(forecast_vol)], axis = 1, join_axes = [forecast.index])
 forecast_final = forecast_final.dropna(axis = 0)
 forecast_final.to_csv('forecast_final_slowcount.csv')
