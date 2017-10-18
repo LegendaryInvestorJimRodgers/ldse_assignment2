@@ -5,7 +5,7 @@ object AisReader {
   def main(args: Array[String]) {
     val spark = SparkSession
       .builder()
-      .appName("VariableExtraction")
+      .appName("TankerExtraction")
       .getOrCreate()
     import spark.implicits._
 
@@ -13,7 +13,7 @@ object AisReader {
     var voyage_reports = messages.map(row => toMmsiType(row.toString()))
     voyage_reports = voyage_reports.filter(v => v.mmsi != "-1" && (v.ship_type >= 80 && v.ship_type < 90))
     val tankers = voyage_reports.select(voyage_reports("mmsi")).distinct()
-    tankers.coalesce(1).write.text("/user/lsde08/tankers.txt")
+    tankers.write.text("/user/lsde08/tankers_w2017.txt")
   }
 
   def toMmsiType(message: String): MmsiType = {

@@ -35,8 +35,15 @@ object VariableExtraction {
   }
 
   def toPositionReport(message: String, date: String): PositionReport = {
-    //println(message)
-    val fields = convert1(message).split(",")
+    //try message1
+    var fields = convert1(message).split(",")
+    //try message2
+    if(fields(0) == "-1"){
+      fields = convert2(message).split(",")
+      if(fields(0) == "-1"){
+        fields = convert3(message).split(",")
+      }
+    }
     if (fields.length == 8) {
       PositionReport(fields(0), fields(1).toInt, fields(2).toFloat, fields(3).toFloat, fields(4).toFloat,
         fields(5).toFloat, fields(6).toFloat, fields(7).toInt, date)
@@ -52,6 +59,36 @@ object VariableExtraction {
       if (vdmmes.add(message) == 0) {
         mes1.parse(vdmmes.sixbit())
         mes1.toCsv
+      } else {
+        "-1,0,0,0,0,0,0,0"
+      }
+    } catch {
+      case e: Exception => "-1,0,0,0,0,0,0,0"
+    }
+  }
+
+  def convert2(message: String): String = {
+    val mes2: Message2 = new Message2()
+    val vdmmes: Vdm = new Vdm()
+    try {
+      if (vdmmes.add(message) == 0) {
+        mes2.parse(vdmmes.sixbit())
+        mes2.toCsv
+      } else {
+        "-1,0,0,0,0,0,0,0"
+      }
+    } catch {
+      case e: Exception => "-1,0,0,0,0,0,0,0"
+    }
+  }
+
+  def convert3(message: String): String = {
+    val mes3: Message3 = new Message3()
+    val vdmmes: Vdm = new Vdm()
+    try {
+      if (vdmmes.add(message) == 0) {
+        mes3.parse(vdmmes.sixbit())
+        mes3.toCsv
       } else {
         "-1,0,0,0,0,0,0,0"
       }
