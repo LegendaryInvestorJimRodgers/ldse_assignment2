@@ -4,36 +4,42 @@ import scipy as sp
 from arch import arch_model
 import datetime as dt
 import matplotlib.pyplot as plt
-# from arch.univariate import ARX, EGARCH
+from arch.univariate import ARX, EGARCH, base
 
+
+#1. GARCH Model for slow count
+#a. getting data and putting it into different variables
 brentprices = pd.DataFrame.from_csv('BrentData.csv')
-wtiprices = pd.DataFrame.from_csv('WTIData.csv')
 data_agg = pd.DataFrame.from_csv('data_agg_full.csv')
-data_agg = pd.concat([data_agg, data_agg['slow_count'] + data_agg['fast_count']], axis = 1)
-# data_agg = pd.concat([data_agg, data_agg['slow_count'] / (data_agg['slow_count'] + data_agg['fast_count'])], axis = 1)
-data_agg = data_agg.rename(columns={ data_agg.columns[3]: "total_count" })
-data_agg = data_agg.sort_index().shift(periods = -2)
-
-brent_returns = 100 * brentprices['Returns']
-data = pd.concat([brent_returns, data_agg], axis=1, join_axes=[data_agg.index])
+data_agg = data_agg.sort_index()
+slow_count = data_agg[['slow_count']]
+fast_count = data_agg[['fast_count']].shift(periods = -2)
+avg_speed = data_agg[['avg(avg(sog))']].shift(periods = -1)
+brent_prices = brentprices['Adjusted Price'].shift(periods = -5)
+data = pd.concat([brent_prices, avg_speed, slow_count, fast_count], axis=1, join_axes=[brent_prices.index])
 data = data.dropna(axis =0)
-#include this for the forecats with variables
-# x = data[[ 'avg(avg(sog))', 'slow_count', 'fast_count']],
-am = arch_model( y = data['Returns'],  mean = 'ARX', lags = 1, vol = 'EGARCH', p = 1, o = 1, q = 1, power = 2, dist = 'Normal')
 
-split_date = dt.datetime(2015,6,1)
-res = am.fit(last_obs = split_date)
+#b. run the garch model for slow count
+am = arch_model(y = data[['slow_count']],x = data[['avg(avg(sog))', 'Adjusted Price', 'fast_count']],mean = 'ARX', lags = 1, vol = 'EGARCH', p = 1, o = 1, q = 1, power = 2, dist = 'Normal')
+res = am.fit()
 print(res.summary())
 
+#c. generate the forecasts for the mean
+data['intercept'] = np.ones(len(data))
+slow_count_lagged = slow_count.shift(periods = -1) #autoregressive term here
+data = pd.concat([slow_count_lagged, data], axis=1, join_axes = [slow_count.index])
+data.columns.values[0] = "slow_count_lagged"
+data = data.dropna(axis = 0)
+forecast = res.params[0] * data['intercept'] + res.params[1] * data['slow_count_lagged'] +  res.params[2] * data['avg(avg(sog))'] + res.params[3] * data['Adjusted Price'] + res.params[4] * data['fast_count']
+forecast = forecast.shift(periods = +1)
 
-forecasts = res.forecast(horizon = 4, start = split_date, method='bootstrap')
-sims = forecasts.simulations
-lines = plt.plot(sims.residual_variances[-1].T, color='#9cb2d6')
-lines[0].set_label('Simulated path')
-line = plt.plot(forecasts.variance.iloc[-1].values, color='#002868')
-line[0].set_label('Expected variance')
-legend = plt.legend()
-plt.show()
+#d. generate the forecasts for the volatility
+volatility = data[['Adjusted Price']].rolling(100).var()
+volatility_data = pd.concat([volatility, res.resid], axis=1, join_axes = [volatility.index])
+volatility_data = volatility_data.dropna(axis = 0)
+e = volatility_data['resid'] / volatility_data['Adjusted Price']
+forecast_vol = np.exp(res.params[5] + res.params[6] * (abs(e) - np.sqrt(2/np.pi)) + res.params[7] * abs(e) + res.params[8] * np.log(volatility['Adjusted Price']))
+forecast_vol = forecast_vol.shift(periods = +1)
 
-lines = plt.plot(forecasts.mean)
-plt.show()
+forecast.to_csv('forecast_slowcount.csv')
+forecast_vol.to_csv('forecast volatility_slowcount.csv')
