@@ -41,5 +41,6 @@ e = volatility_data['resid'] / volatility_data['Adjusted Price']
 forecast_vol = np.exp(res.params[5] + res.params[6] * (abs(e) - np.sqrt(2/np.pi)) + res.params[7] * abs(e) + res.params[8] * np.log(volatility['Adjusted Price']))
 forecast_vol = forecast_vol.shift(periods = +1)
 
-forecast.to_csv('forecast_slowcount.csv')
-forecast_vol.to_csv('forecast volatility_slowcount.csv')
+forecast_final = pd.concat([forecast, forecast_vol], axis = 1, join_axes = [forecast.index])
+forecast_final = forecast_final.dropna(axis = 0)
+forecast_final.to_csv('forecast_final_slowcount.csv')
