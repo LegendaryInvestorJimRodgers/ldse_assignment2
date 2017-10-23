@@ -12,10 +12,10 @@ from arch.univariate import ARX, EGARCH, base
 brentprices = pd.DataFrame.from_csv('BrentData.csv')
 data_agg = pd.DataFrame.from_csv('data_agg_w2017.csv')
 data_agg = data_agg.sort_index()
-slow_count = data_agg[['slow_count']].shift(periods = -1)
-fast_count = data_agg[['fast_count']]
+slow_count = data_agg[['slow_count']]
+fast_count = data_agg[['fast_count']].shift(periods = -1)
 avg_speed = data_agg[['avg(avg(sog))']].shift(periods = -1)
-brent_prices = brentprices['Adjusted Price'].shift(periods = -3)
+brent_prices = brentprices['Adjusted Price'].shift(periods = -10)
 data = pd.concat([brent_prices, avg_speed, slow_count, fast_count], axis=1, join_axes=[brent_prices.index])
 data = data.dropna(axis =0)
 
@@ -26,19 +26,19 @@ print(res.summary())
 
 #c. generate the forecasts for the mean
 data['intercept'] = np.ones(len(data))
-slow_count_lagged = slow_count.shift(periods = -1) #autoregressive term here
-data = pd.concat([slow_count_lagged, data], axis=1, join_axes = [slow_count.index])
+fast_count_lagged = fast_count.shift(periods = -1) #autoregressive term here
+data = pd.concat([fast_count_lagged, data], axis=1, join_axes = [fast_count_lagged.index])
 data.columns.values[0] = "fast_count_lagged"
 data = data.dropna(axis = 0)
 forecast = res.params[0] * data['intercept'] + res.params[1] * data['fast_count_lagged']  + res.params[2] * data['Adjusted Price'] + res.params[3] * data['slow_count']
 forecast = forecast.shift(periods = +1)
 
 #d. generate the forecasts for the volatility
-volatility = data[['Adjusted Price']].rolling(80).var()
+volatility = data[['fast_count']].rolling(80).var()
 volatility_data = pd.concat([volatility, res.resid], axis=1, join_axes = [volatility.index])
 volatility_data = volatility_data.dropna(axis = 0)
-e = volatility_data['resid'] / volatility_data['Adjusted Price']
-forecast_vol = np.exp(res.params[4] + res.params[5] * (abs(e) - np.sqrt(2/np.pi)) + res.params[6] * abs(e) + res.params[7] * np.log(volatility['Adjusted Price']))
+e = volatility_data['resid'] / volatility_data['fast_count']
+forecast_vol = np.exp(res.params[4] + res.params[5] * (abs(e) - np.sqrt(2/np.pi)) + res.params[6] * abs(e) + res.params[7] * np.log(volatility['fast_count']))
 forecast_vol = forecast_vol.shift(periods = +1)
 
 forecast_final = pd.concat([forecast, np.sqrt(forecast_vol)], axis = 1, join_axes = [forecast.index])
