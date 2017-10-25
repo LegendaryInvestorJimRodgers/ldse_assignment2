@@ -12,10 +12,10 @@ object PositionExtraction {
       .appName("PositionExtraction")
       .getOrCreate()
     import spark.implicits._
-    val tankers = spark.read.text("tankers_full.txt")
+    val tankers = spark.read.text("/user/lsde08/tankers_w2017_2.txt")
     tankers.cache()
 
-    val messages = spark.read.text("../ais/*").withColumn("date", input_file_name)
+    val messages = spark.read.text("/user/hannesm/lsde/ais2/*/*/*").withColumn("date", input_file_name)
     val messages2 = messages.select(substring(col("date"), 46, 10).as("date"), col("value"))
     var position_reports = messages2.map(row => toPositionReport(row.getAs[String]("value"), row.getAs[String]("date")))
     position_reports = position_reports.filter(p => p.mmsi != "-1")
@@ -24,7 +24,7 @@ object PositionExtraction {
     val position_aggregated = position_reports2.groupBy($"date", $"mmsi").agg(avg("lat"), avg("lng"), avg("cog"), avg("sog"))
 //    println(position_aggregated.show())
 //    position_aggregated.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("pos_agg.csv")
-    position_aggregated.write.format("com.databricks.spark.csv").option("header", "true").save("pos_agg_course.csv")
+    position_aggregated.write.format("com.databricks.spark.csv").option("header", "true").save("posistion_w2017.csv")
   }
 
 

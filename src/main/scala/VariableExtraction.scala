@@ -8,7 +8,7 @@ object VariableExtraction {
       .appName("VariableExtraction")
       .getOrCreate()
     import spark.implicits._
-    val tankers = spark.read.text("/user/lsde08/tankers.txt")
+    val tankers = spark.read.text("/user/lsde08/tankers_w2017_2.txt")
 //    val tankers = spark.read.text("2014_tankers.txt")
     tankers.cache()
     val messages = spark.read.text("/user/hannesm/lsde/ais2/*/*/*").withColumn("date", input_file_name)
@@ -31,7 +31,7 @@ object VariableExtraction {
 //    println(result.show())
 
 //    result.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("data_agg.csv")
-    result.write.format("com.databricks.spark.csv").option("header", "true").save("data_agg2.csv")
+    result.write.format("com.databricks.spark.csv").option("header", "true").save("data_agg_w2017.csv")
   }
 
   def toPositionReport(message: String, date: String): PositionReport = {
